@@ -1,7 +1,8 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
+import plotly.express as px
+import plotly.graph_objects as go
 
 # Hardcoded dummy data for demo purposes
 def load_dummy_data():
@@ -19,58 +20,36 @@ def load_dummy_data():
     }
     return pd.DataFrame(data)
 
-# Helper functions to create charts
+# Helper functions to create interactive charts with Plotly
 def plot_revenue_forecast(df):
-    plt.figure(figsize=(10, 6))
-    plt.plot(df['date'], df['total_arr'], label="Total ARR Forecast", color='green')
-    plt.xlabel('Date')
-    plt.ylabel('Revenue ($)')
-    plt.title('Monthly Revenue Forecast')
-    plt.grid(True)
-    plt.legend()
-    st.pyplot(plt)
+    fig = px.line(df, x='date', y='total_arr', title='Monthly Revenue Forecast', labels={'total_arr': 'Revenue ($)'})
+    fig.update_traces(line_color='green')
+    st.plotly_chart(fig)
 
 def plot_spend_forecast(df):
-    plt.figure(figsize=(10, 6))
-    plt.plot(df['date'], df['spend_forecast'], label="Spend Forecast", color='blue')
-    plt.xlabel('Date')
-    plt.ylabel('Spend ($)')
-    plt.title('Spend Forecast by Product Type')
-    plt.grid(True)
-    plt.legend()
-    st.pyplot(plt)
+    fig = px.line(df, x='date', y='spend_forecast', title='Spend Forecast by Product Type', labels={'spend_forecast': 'Spend ($)'})
+    fig.update_traces(line_color='blue')
+    st.plotly_chart(fig)
 
 def plot_product_profitability(df):
-    plt.figure(figsize=(10, 6))
-    plt.plot(df['date'], df['product_1_revenue'], label="Product 1", color='orange')
-    plt.plot(df['date'], df['product_2_revenue'], label="Product 2", color='purple')
-    plt.plot(df['date'], df['product_3_revenue'], label="Product 3", color='red')
-    plt.xlabel('Date')
-    plt.ylabel('Revenue ($)')
-    plt.title('Product Profitability Trend')
-    plt.grid(True)
-    plt.legend()
-    st.pyplot(plt)
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=df['date'], y=df['product_1_revenue'], mode='lines', name='Product 1', line=dict(color='orange')))
+    fig.add_trace(go.Scatter(x=df['date'], y=df['product_2_revenue'], mode='lines', name='Product 2', line=dict(color='purple')))
+    fig.add_trace(go.Scatter(x=df['date'], y=df['product_3_revenue'], mode='lines', name='Product 3', line=dict(color='red')))
+    fig.update_layout(title='Product Profitability Trend', xaxis_title='Date', yaxis_title='Revenue ($)')
+    st.plotly_chart(fig)
 
 def plot_product_mix(df):
-    plt.figure(figsize=(10, 6))
-    plt.stackplot(df['date'], df['product_1_revenue'], df['product_2_revenue'], df['product_3_revenue'], 
-                  labels=["Product 1", "Product 2", "Product 3"], colors=['orange', 'purple', 'red'])
-    plt.xlabel('Date')
-    plt.ylabel('Revenue ($)')
-    plt.title('Product Mix Distribution Over Time')
-    plt.legend()
-    plt.grid(True)
-    st.pyplot(plt)
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=df['date'], y=df['product_1_revenue'], stackgroup='one', name='Product 1', line=dict(color='orange')))
+    fig.add_trace(go.Scatter(x=df['date'], y=df['product_2_revenue'], stackgroup='one', name='Product 2', line=dict(color='purple')))
+    fig.add_trace(go.Scatter(x=df['date'], y=df['product_3_revenue'], stackgroup='one', name='Product 3', line=dict(color='red')))
+    fig.update_layout(title='Product Mix Distribution Over Time', xaxis_title='Date', yaxis_title='Revenue ($)')
+    st.plotly_chart(fig)
 
 def plot_contract_length_distribution(df):
-    plt.figure(figsize=(10, 6))
-    plt.hist(df['average_contract_length'], bins=10, color='skyblue', edgecolor='black')
-    plt.xlabel('Contract Length (Months)')
-    plt.ylabel('Count')
-    plt.title('Contract Length Distribution')
-    plt.grid(True)
-    st.pyplot(plt)
+    fig = px.histogram(df, x='average_contract_length', nbins=10, title='Contract Length Distribution', labels={'average_contract_length': 'Contract Length (Months)'})
+    st.plotly_chart(fig)
 
 # Define Streamlit app layout
 st.markdown("<h1 style='text-align: center; color: black;'>SaaS Business Dashboard Demo</h1>", unsafe_allow_html=True)
@@ -131,5 +110,3 @@ st.markdown("<h3>Cohort Analysis (placeholder)</h3>", unsafe_allow_html=True)
 # AI-driven Q&A Section
 st.markdown("<h2 style='text-align: center; color: black;'>AI-driven Q&A Section (placeholder)</h2>", unsafe_allow_html=True)
 st.text("Cortex Analyst chat bot integration can be added here.")
-
-# Save this as app.py and run it via 'streamlit run app.py' in your terminal

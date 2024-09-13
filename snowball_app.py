@@ -94,10 +94,23 @@ data = load_dummy_data()
 
 # Sidebar filters
 st.sidebar.header("Filter Options")
-start_month, end_month = st.sidebar.select_slider("Select date range:", options=data['date'], value=(data['date'].min(), data['date'].max()))
-product_selection = st.sidebar.multiselect("Select products:", ['Product 1', 'Product 2', 'Product 3'], default=['Product 1', 'Product 2', 'Product 3'])
-forecast_period = st.sidebar.slider("Forecast period (months):", 1, 12, value=6)
-contract_length_range = st.sidebar.slider("Contract length (months):", 2, 48, value=(2, 48))
+start_month = st.sidebar.date_input("Start Date", value=data['date'].min())
+end_month = st.sidebar.date_input("End Date", value=data['date'].max())
+
+# Convert input to pandas datetime if necessary (in case the input is not a datetime object)
+if isinstance(start_month, pd.Timestamp):
+    start_month = start_month
+else:
+    start_month = pd.to_datetime(start_month)
+
+if isinstance(end_month, pd.Timestamp):
+    end_month = end_month
+else:
+    end_month = pd.to_datetime(end_month)
+
+# Ensure end_month is not earlier than start_month
+if start_month > end_month:
+    st.sidebar.error("End date must be after the start date.")
 
 # Filter data based on user selections
 filtered_data = data[(data['date'] >= start_month) & (data['date'] <= end_month)]

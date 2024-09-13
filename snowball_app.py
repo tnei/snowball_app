@@ -3,6 +3,7 @@ import pandas as pd
 import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
+from sklearn.cluster import KMeans
 
 # Hardcoded dummy data for demo purposes
 def load_dummy_data():
@@ -19,6 +20,18 @@ def load_dummy_data():
         'product_3_revenue': np.random.randint(30000, 150000, size=len(dates)),
     }
     return pd.DataFrame(data)
+
+# Generate dummy customer data for segmentation and cohort analysis
+def generate_customer_data():
+    np.random.seed(42)
+    customer_data = {
+        'customer_id': range(1, 101),
+        'spend': np.random.randint(500, 5000, 100),
+        'contract_length': np.random.randint(6, 48, 100),
+        'sign_up_date': pd.date_range(start="2020-01-01", periods=100, freq='7D'),
+        'last_active': pd.date_range(start="2020-01-01", periods=100, freq='7D') + pd.to_timedelta(np.random.randint(30, 365, 100), unit='D')
+    }
+    return pd.DataFrame(customer_data)
 
 # Helper functions to create interactive charts with Plotly
 def plot_revenue_forecast(df):
@@ -49,6 +62,25 @@ def plot_product_mix(df):
 
 def plot_contract_length_distribution(df):
     fig = px.histogram(df, x='average_contract_length', nbins=10, title='Contract Length Distribution', labels={'average_contract_length': 'Contract Length (Months)'})
+    st.plotly_chart(fig)
+
+# Customer Segmentation using KMeans
+def plot_customer_segmentation(customer_data):
+    X = customer_data[['spend', 'contract_length']]
+    kmeans = KMeans(n_clusters=3)
+    customer_data['segment'] = kmeans.fit_predict(X)
+
+    fig = px.scatter(customer_data, x='spend', y='contract_length', color='segment', title='Customer Segmentation',
+                     labels={'spend': 'Customer Spend ($)', 'contract_length': 'Contract Length (Months)'}, hover_data=['customer_id'])
+    st.plotly_chart(fig)
+
+# Cohort Analysis: Group customers by sign-up month and calculate retention
+def plot_cohort_analysis(customer_data):
+    customer_data['cohort'] = customer_data['sign_up_date'].dt.to_period('M')
+    cohort_data = customer_data.groupby('cohort')['customer_id'].count().reset_index()
+
+    fig = px.bar(cohort_data, x='cohort', y='customer_id', title='Cohort Analysis (Sign-ups by Month)',
+                 labels={'customer_id': 'Number of Customers', 'cohort': 'Cohort (Month of Sign-up)'})
     st.plotly_chart(fig)
 
 # Define Streamlit app layout
@@ -101,11 +133,17 @@ plot_contract_length_distribution(filtered_data)
 
 # Advanced Analytics Section
 st.markdown("<h2 style='text-align: center; color: black;'>Advanced Analytics</h2>", unsafe_allow_html=True)
-st.markdown("<h3>Customer Segmentation Plot (placeholder)</h3>", unsafe_allow_html=True)
-# Placeholder for customer segmentation plot - implement with clustering if needed
 
-st.markdown("<h3>Cohort Analysis (placeholder)</h3>", unsafe_allow_html=True)
-# Placeholder for cohort analysis - add cohort logic here
+# Generate dummy customer data for Advanced Analytics
+customer_data = generate_customer_data()
+
+# Customer Segmentation Plot
+st.markdown("<h3>Customer Segmentation</h3>", unsafe_allow_html=True)
+plot_customer_segmentation(customer_data)
+
+# Cohort Analysis Plot
+st.markdown("<h3>Cohort Analysis</h3>", unsafe_allow_html=True)
+plot_cohort_analysis(customer_data)
 
 # AI-driven Q&A Section
 st.markdown("<h2 style='text-align: center; color: black;'>AI-driven Q&A Section (placeholder)</h2>", unsafe_allow_html=True)

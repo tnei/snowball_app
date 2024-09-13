@@ -33,6 +33,33 @@ def generate_customer_data():
     }
     return pd.DataFrame(customer_data)
 
+# Generate dummy cohort data with retention rates
+def generate_cohort_data():
+    np.random.seed(42)
+    # Generate sign-up dates in monthly cohorts
+    cohort_months = pd.date_range(start="2020-01-01", periods=12, freq='M')
+    
+    # Create dummy data for customer sign-ups and retention rates
+    cohort_data = []
+    for i, month in enumerate(cohort_months):
+        cohort_size = np.random.randint(50, 100)  # Random cohort size
+        retention = [cohort_size]  # Initial size is the full cohort
+        for month in range(1, 12):  # Generate retention for 11 months
+            retention_rate = np.random.uniform(0.5, 0.95)  # Random retention rate between 50% and 95%
+            retention.append(int(retention[-1] * retention_rate))  # Calculate retained customers
+        cohort_data.append(retention)
+
+    # Convert to DataFrame
+    cohort_df = pd.DataFrame(cohort_data, index=cohort_months.strftime('%Y-%m'), 
+                             columns=[f"Month {i}" for i in range(12)])
+    
+    # Calculate retention percentage
+    cohort_size = cohort_df.iloc[:, 0]  # Cohort size in Month 0
+    retention_rate_df = cohort_df.divide(cohort_size, axis=0)  # Divide each row by the cohort size
+    retention_rate_df = retention_rate_df * 100  # Convert to percentage
+
+    return retention_rate_df
+
 # Helper functions to create interactive charts with Plotly
 def plot_revenue_forecast(df):
     fig = px.line(df, x='date', y='total_arr', title='Monthly Revenue Forecast', labels={'total_arr': 'Revenue ($)'})
@@ -74,16 +101,18 @@ def plot_customer_segmentation(customer_data):
                      labels={'spend': 'Customer Spend ($)', 'contract_length': 'Contract Length (Months)'}, hover_data=['customer_id'])
     st.plotly_chart(fig)
 
-# Cohort Analysis: Group customers by sign-up month and calculate retention
-def plot_cohort_analysis(customer_data):
-    customer_data['cohort'] = customer_data['sign_up_date'].dt.to_period('M')
-    # Convert the cohort (Period type) to string for Plotly compatibility
-    customer_data['cohort'] = customer_data['cohort'].astype(str)
+# Customer Cohort Analysis - Retention Rates Heatmap
+def plot_cohort_retention_heatmap(cohort_df):
+    fig = px.imshow(cohort_df, 
+                    labels=dict(x="Cohort Period (Months)", y="Cohort (Sign-up Month)", color="Retention Rate (%)"),
+                    x=[f"Month {i}" for i in range(12)],
+                    y=cohort_df.index,
+                    color_continuous_scale='Blues')
     
-    cohort_data = customer_data.groupby('cohort')['customer_id'].count().reset_index()
-
-    fig = px.bar(cohort_data, x='cohort', y='customer_id', title='Cohort Analysis (Sign-ups by Month)',
-                 labels={'customer_id': 'Number of Customers', 'cohort': 'Cohort (Month of Sign-up)'})
+    fig.update_layout(title="Customer Cohort Analysis - Retention Rates", 
+                      xaxis_title="Cohort Period (Months)", 
+                      yaxis_title="Cohort (Sign-up Month)")
+    
     st.plotly_chart(fig)
 
 # Define Streamlit app layout
@@ -160,9 +189,10 @@ customer_data = generate_customer_data()
 st.markdown("<h3>Customer Segmentation</h3>", unsafe_allow_html=True)
 plot_customer_segmentation(customer_data)
 
-# Cohort Analysis Plot
-st.markdown("<h3>Cohort Analysis</h3>", unsafe_allow_html=True)
-plot_cohort_analysis(customer_data)
+# Cohort Analysis Plot - Retention Rates Heatmap
+st.markdown("<h3>Customer Cohort Analysis - Retention Rates</h3>", unsafe_allow_html=True)
+cohort_data = generate_cohort_data()
+plot_cohort_retention_heatmap(cohort_data)
 
 # AI-driven Q&A Section
 st.markdown("<h2 style='text-align: center; color: black;'>AI-driven Q&A Section (placeholder)</h2>", unsafe_allow_html=True)

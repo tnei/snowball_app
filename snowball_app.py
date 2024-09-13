@@ -96,7 +96,7 @@ data = load_dummy_data()
 st.sidebar.header("Filter Options")
 start_month = st.sidebar.date_input("Start Date", value=data['date'].min())
 end_month = st.sidebar.date_input("End Date", value=data['date'].max())
-product_selection = st.sidebar.multiselect("Select products:", ['Design Live', 'Winner Flex', 'Insight'], default=['Design Live', 'Winner Flex'])
+product_selection = st.sidebar.multiselect("Select products:", ['Product 1', 'Product 2', 'Product 3'], default=['Product 1', 'Product 2'])
 forecast_period = st.sidebar.slider("Forecast period (months):", 1, 12, value=6)
 contract_length_range = st.sidebar.slider("Contract length (months):", 2, 48, value=(2, 48))
 

@@ -77,6 +77,9 @@ def plot_customer_segmentation(customer_data):
 # Cohort Analysis: Group customers by sign-up month and calculate retention
 def plot_cohort_analysis(customer_data):
     customer_data['cohort'] = customer_data['sign_up_date'].dt.to_period('M')
+    # Convert the cohort (Period type) to string for Plotly compatibility
+    customer_data['cohort'] = customer_data['cohort'].astype(str)
+    
     cohort_data = customer_data.groupby('cohort')['customer_id'].count().reset_index()
 
     fig = px.bar(cohort_data, x='cohort', y='customer_id', title='Cohort Analysis (Sign-ups by Month)',

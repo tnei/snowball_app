@@ -3,4 +3,4 @@ pandas
 numpy
 plotly
 scikit-learn
-streamlit-sortable
+git+https://github.com/giswqs/streamlit-sortable.git

@@ -135,12 +135,11 @@ def generate_cohort_data():
     return retention_rate_df
 
 # Function for advanced predictive analytics using NeuralProphet
+from pytorch_lightning import Trainer
+
 def forecast_revenue(df, periods):
     # Prepare data for NeuralProphet
     neuralprophet_df = df[['date', 'total_arr']].rename(columns={'date': 'ds', 'total_arr': 'y'})
-    
-    # Disable checkpointing by passing `enable_checkpointing=False` or use a custom ModelCheckpoint
-    checkpoint_callback = ModelCheckpoint(save_top_k=0)  # No checkpoint saving
     
     # Initialize the Trainer with checkpointing disabled
     trainer = Trainer(max_epochs=10, enable_checkpointing=False)  # Adjust epochs if needed

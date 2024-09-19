@@ -61,58 +61,164 @@ def generate_cohort_data():
     return retention_rate_df
 
 # Plotting functions for various charts
+
+# Updated plot_revenue_forecast function with interactivity
 def plot_revenue_forecast(df):
     fig = px.line(df, x='date', y='total_arr', title='Monthly Revenue Forecast',
                   labels={'total_arr': 'Revenue ($)'})
     fig.update_traces(line_color='green')
-    st.plotly_chart(fig)
+    # Add interactive range slider and selectors
+    fig.update_layout(
+        xaxis=dict(
+            rangeselector=dict(
+                buttons=list([
+                    dict(count=3, label="3M", step="month", stepmode="backward"),
+                    dict(count=6, label="6M", step="month", stepmode="backward"),
+                    dict(count=1, label="YTD", step="year", stepmode="todate"),
+                    dict(step="all")
+                ])
+            ),
+            rangeslider=dict(visible=True),
+            type="date"
+        ),
+        hovermode="x unified"
+    )
+    st.plotly_chart(fig, use_container_width=True)
 
+# Updated plot_spend_forecast function with interactivity
 def plot_spend_forecast(df):
     fig = px.line(df, x='date', y='spend_forecast', title='Spend Forecast by Product Type',
                   labels={'spend_forecast': 'Spend ($)'})
     fig.update_traces(line_color='blue')
-    st.plotly_chart(fig)
+    # Add interactive range slider and selectors
+    fig.update_layout(
+        xaxis=dict(
+            rangeselector=dict(
+                buttons=list([
+                    dict(count=3, label="3M", step="month", stepmode="backward"),
+                    dict(count=6, label="6M", step="month", stepmode="backward"),
+                    dict(count=1, label="YTD", step="year", stepmode="todate"),
+                    dict(step="all")
+                ])
+            ),
+            rangeslider=dict(visible=True),
+            type="date"
+        ),
+        hovermode="x unified"
+    )
+    st.plotly_chart(fig, use_container_width=True)
 
-def plot_product_profitability(df):
-    fig = go.Figure()
-    # Plot revenue lines for each product
-    fig.add_trace(go.Scatter(x=df['date'], y=df['product_1_revenue'],
-                             mode='lines', name='Product 1', line=dict(color='orange')))
-    fig.add_trace(go.Scatter(x=df['date'], y=df['product_2_revenue'],
-                             mode='lines', name='Product 2', line=dict(color='purple')))
-    fig.add_trace(go.Scatter(x=df['date'], y=df['product_3_revenue'],
-                             mode='lines', name='Product 3', line=dict(color='red')))
-    fig.update_layout(title='Product Profitability Trend', xaxis_title='Date', yaxis_title='Revenue ($)')
-    st.plotly_chart(fig)
+# Updated plot_product_profitability function with interactivity
+def plot_product_profitability(df, product_selection):
+    # Create a DataFrame based on product selection
+    product_cols = {
+        'Product 1': 'product_1_revenue',
+        'Product 2': 'product_2_revenue',
+        'Product 3': 'product_3_revenue'
+    }
+    selected_products = [product_cols[prod] for prod in product_selection if prod in product_cols]
 
-def plot_product_mix(df):
-    fig = go.Figure()
-    # Stack area chart to show product mix over time
-    fig.add_trace(go.Scatter(x=df['date'], y=df['product_1_revenue'],
-                             stackgroup='one', name='Product 1', line=dict(color='orange')))
-    fig.add_trace(go.Scatter(x=df['date'], y=df['product_2_revenue'],
-                             stackgroup='one', name='Product 2', line=dict(color='purple')))
-    fig.add_trace(go.Scatter(x=df['date'], y=df['product_3_revenue'],
-                             stackgroup='one', name='Product 3', line=dict(color='red')))
-    fig.update_layout(title='Product Mix Distribution Over Time', xaxis_title='Date', yaxis_title='Revenue ($)')
-    st.plotly_chart(fig)
+    if not selected_products:
+        st.warning("Please select at least one product to display the chart.")
+        return
 
+    # Melt the DataFrame for Plotly
+    df_melted = df.melt(id_vars=['date'], value_vars=selected_products, var_name='Product', value_name='Revenue')
+    df_melted['Product'] = df_melted['Product'].map({v: k for k, v in product_cols.items()})
+
+    # Create interactive line chart with Plotly Express
+    fig = px.line(
+        df_melted, x='date', y='Revenue', color='Product',
+        title='Product Profitability Trend',
+        labels={'Revenue': 'Revenue ($)', 'date': 'Date'},
+        hover_data={'Revenue': ':.2f', 'date': True}
+    )
+
+    # Add interactive range slider and selectors
+    fig.update_layout(
+        xaxis=dict(
+            rangeselector=dict(
+                buttons=list([
+                    dict(count=3, label="3M", step="month", stepmode="backward"),
+                    dict(count=6, label="6M", step="month", stepmode="backward"),
+                    dict(count=1, label="YTD", step="year", stepmode="todate"),
+                    dict(step="all")
+                ])
+            ),
+            rangeslider=dict(visible=True),
+            type="date"
+        ),
+        hovermode="x unified"
+    )
+
+    st.plotly_chart(fig, use_container_width=True)
+
+# Updated plot_product_mix function with interactivity
+def plot_product_mix(df, product_selection):
+    product_cols = {
+        'Product 1': 'product_1_revenue',
+        'Product 2': 'product_2_revenue',
+        'Product 3': 'product_3_revenue'
+    }
+    selected_products = [product_cols[prod] for prod in product_selection if prod in product_cols]
+
+    if not selected_products:
+        st.warning("Please select at least one product to display the chart.")
+        return
+
+    # Melt the DataFrame for Plotly
+    df_melted = df.melt(id_vars=['date'], value_vars=selected_products, var_name='Product', value_name='Revenue')
+    df_melted['Product'] = df_melted['Product'].map({v: k for k, v in product_cols.items()})
+
+    # Create stacked area chart
+    fig = px.area(
+        df_melted, x='date', y='Revenue', color='Product',
+        title='Product Mix Distribution Over Time',
+        labels={'Revenue': 'Revenue ($)', 'date': 'Date'},
+        groupnorm='percent'
+    )
+
+    # Add interactive range slider and selectors
+    fig.update_layout(
+        xaxis=dict(
+            rangeselector=dict(
+                buttons=list([
+                    dict(count=3, label="3M", step="month", stepmode="backward"),
+                    dict(count=6, label="6M", step="month", stepmode="backward"),
+                    dict(count=1, label="YTD", step="year", stepmode="todate"),
+                    dict(step="all")
+                ])
+            ),
+            rangeslider=dict(visible=True),
+            type="date"
+        ),
+        hovermode="x unified",
+        yaxis=dict(ticksuffix='%')
+    )
+
+    st.plotly_chart(fig, use_container_width=True)
+
+# Updated plot_contract_length_distribution function with interactivity
 def plot_contract_length_distribution(df):
     fig = px.histogram(df, x='average_contract_length', nbins=10,
                        title='Contract Length Distribution',
                        labels={'average_contract_length': 'Contract Length (Months)'})
-    st.plotly_chart(fig)
+    fig.update_layout(bargap=0.1)
+    st.plotly_chart(fig, use_container_width=True)
 
+# Customer Segmentation using KMeans with interactivity
 def plot_customer_segmentation(customer_data):
     X = customer_data[['spend', 'contract_length']]
     kmeans = KMeans(n_clusters=3)
     customer_data['segment'] = kmeans.fit_predict(X)
+
     fig = px.scatter(customer_data, x='spend', y='contract_length', color='segment',
                      title='Customer Segmentation',
                      labels={'spend': 'Customer Spend ($)', 'contract_length': 'Contract Length (Months)'},
                      hover_data=['customer_id'])
-    st.plotly_chart(fig)
+    st.plotly_chart(fig, use_container_width=True)
 
+# Customer Cohort Analysis - Retention Rates Heatmap
 def plot_cohort_retention_heatmap(cohort_df):
     fig = px.imshow(cohort_df,
                     labels=dict(x="Cohort Period (Months)", y="Cohort (Sign-up Month)",
@@ -123,7 +229,17 @@ def plot_cohort_retention_heatmap(cohort_df):
     fig.update_layout(title="Customer Cohort Analysis - Retention Rates",
                       xaxis_title="Cohort Period (Months)",
                       yaxis_title="Cohort (Sign-up Month)")
-    st.plotly_chart(fig)
+    st.plotly_chart(fig, use_container_width=True)
+
+# Display data table with interactive filtering
+def display_data_table(df):
+    st.markdown("<h2 style='color: black;'>Detailed Data View</h2>", unsafe_allow_html=True)
+    # Add filters
+    with st.expander("Filter Data"):
+        min_revenue = st.slider("Minimum Revenue ($)", int(df['total_arr'].min()), int(df['total_arr'].max()), int(df['total_arr'].min()))
+        max_revenue = st.slider("Maximum Revenue ($)", int(df['total_arr'].min()), int(df['total_arr'].max()), int(df['total_arr'].max()))
+        filtered_df = df[(df['total_arr'] >= min_revenue) & (df['total_arr'] <= max_revenue)]
+    st.dataframe(filtered_df)
 
 # Main function to run the Streamlit app
 def main():
@@ -138,9 +254,10 @@ def main():
     st.sidebar.header("Filter Options")
     start_month = st.sidebar.date_input("Start Date", value=data['date'].min())
     end_month = st.sidebar.date_input("End Date", value=data['date'].max())
+    global product_selection
     product_selection = st.sidebar.multiselect("Select products:",
                                                ['Product 1', 'Product 2', 'Product 3'],
-                                               default=['Product 1', 'Product 2'])
+                                               default=['Product 1', 'Product 2', 'Product 3'])
     forecast_period = st.sidebar.slider("Forecast period (months):", 1, 12, value=6)
     contract_length_range = st.sidebar.slider("Contract length (months):", 2, 48, value=(2, 48))
     # Convert inputs to datetime if necessary
@@ -152,15 +269,10 @@ def main():
         return  # Stop execution if dates are invalid
     # Filter data based on user selections
     filtered_data = data[(data['date'] >= start_month) & (data['date'] <= end_month)]
-    # Apply product selection filter
-    # For simplicity, we'll assume product revenues are in separate columns
-    # In a real scenario, you might need to pivot or filter your DataFrame differently
-    if 'Product 1' not in product_selection:
-        filtered_data['product_1_revenue'] = 0
-    if 'Product 2' not in product_selection:
-        filtered_data['product_2_revenue'] = 0
-    if 'Product 3' not in product_selection:
-        filtered_data['product_3_revenue'] = 0
+    # Apply contract length filter
+    filtered_data = filtered_data[(filtered_data['average_contract_length'] >= contract_length_range[0]) &
+                                  (filtered_data['average_contract_length'] <= contract_length_range[1])]
+    # Apply product selection filter (adjusted in plotting functions)
     # Overview section
     st.markdown("<h2 style='text-align: center; color: black;'>Overview</h2>",
                 unsafe_allow_html=True)
@@ -180,18 +292,20 @@ def main():
     # Product Profitability Trend Chart
     st.markdown("<h2 style='color: black;'>Product Profitability Trend</h2>",
                 unsafe_allow_html=True)
-    plot_product_profitability(filtered_data)
+    plot_product_profitability(filtered_data, product_selection)
     # Product Insights section
     st.markdown("<h2 style='text-align: center; color: black;'>Product Insights</h2>",
                 unsafe_allow_html=True)
     # Product Mix Distribution Over Time Chart
     st.markdown("<h3 style='color: black;'>Product Mix Distribution Over Time</h3>",
                 unsafe_allow_html=True)
-    plot_product_mix(filtered_data)
+    plot_product_mix(filtered_data, product_selection)
     # Contract Length Distribution Chart
     st.markdown("<h3 style='color: black;'>Contract Length Distribution</h3>",
                 unsafe_allow_html=True)
     plot_contract_length_distribution(filtered_data)
+    # Display Data Table
+    display_data_table(filtered_data)
     # Advanced Analytics Section
     st.markdown("<h2 style='text-align: center; color: black;'>Advanced Analytics</h2>",
                 unsafe_allow_html=True)

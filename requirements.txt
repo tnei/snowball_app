@@ -1,6 +1,7 @@
+neuralprophet
+holidays==0.24
 streamlit
 pandas
 numpy
 plotly
 scikit-learn
-neuralprophet

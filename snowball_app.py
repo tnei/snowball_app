@@ -4,6 +4,7 @@ import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
 from sklearn.cluster import KMeans
+from streamlit_sortable import st_sortable  # Import streamlit-sortable
 
 # Function to load dummy data for the main dashboard
 def load_dummy_data():
@@ -273,52 +274,72 @@ def main():
     filtered_data = filtered_data[(filtered_data['average_contract_length'] >= contract_length_range[0]) &
                                   (filtered_data['average_contract_length'] <= contract_length_range[1])]
     # Apply product selection filter (adjusted in plotting functions)
-    # Overview section
-    st.markdown("<h2 style='text-align: center; color: black;'>Overview</h2>",
-                unsafe_allow_html=True)
-    col1, col2, col3, col4 = st.columns(4)
-    col1.metric("Total Customers", int(filtered_data['total_customers'].sum()))
-    col2.metric("Churn Percentage", f"{filtered_data['churn_percentage'].mean():.2%}")
-    col3.metric("Avg Contract Length", f"{filtered_data['average_contract_length'].mean():.1f} months")
-    col4.metric("Total ARR", f"${int(filtered_data['total_arr'].sum()):,}")
-    # Monthly Revenue Forecast Chart
-    st.markdown("<h2 style='color: black;'>Monthly Revenue Forecast</h2>",
-                unsafe_allow_html=True)
-    plot_revenue_forecast(filtered_data)
-    # Spend Forecast by Product Type Chart
-    st.markdown("<h2 style='color: black;'>Spend Forecast by Product Type</h2>",
-                unsafe_allow_html=True)
-    plot_spend_forecast(filtered_data)
-    # Product Profitability Trend Chart
-    st.markdown("<h2 style='color: black;'>Product Profitability Trend</h2>",
-                unsafe_allow_html=True)
-    plot_product_profitability(filtered_data, product_selection)
-    # Product Insights section
-    st.markdown("<h2 style='text-align: center; color: black;'>Product Insights</h2>",
-                unsafe_allow_html=True)
-    # Product Mix Distribution Over Time Chart
-    st.markdown("<h3 style='color: black;'>Product Mix Distribution Over Time</h3>",
-                unsafe_allow_html=True)
-    plot_product_mix(filtered_data, product_selection)
-    # Contract Length Distribution Chart
-    st.markdown("<h3 style='color: black;'>Contract Length Distribution</h3>",
-                unsafe_allow_html=True)
-    plot_contract_length_distribution(filtered_data)
-    # Display Data Table
-    display_data_table(filtered_data)
-    # Advanced Analytics Section
-    st.markdown("<h2 style='text-align: center; color: black;'>Advanced Analytics</h2>",
-                unsafe_allow_html=True)
-    # Customer Segmentation Plot
-    st.markdown("<h3>Customer Segmentation</h3>", unsafe_allow_html=True)
-    plot_customer_segmentation(customer_data)
-    # Cohort Analysis Plot - Retention Rates Heatmap
-    st.markdown("<h3>Customer Cohort Analysis - Retention Rates</h3>", unsafe_allow_html=True)
-    plot_cohort_retention_heatmap(cohort_data)
-    # AI-driven Q&A Section (Placeholder)
-    st.markdown("<h2 style='text-align: center; color: black;'>AI-driven Q&A Section</h2>",
-                unsafe_allow_html=True)
-    st.text("Cortex Analyst chat bot integration can be added here.")
+
+    # Allow the user to select which sections to display
+    st.sidebar.header("Customize Dashboard")
+    available_widgets = [
+        "Overview",
+        "Monthly Revenue Forecast",
+        "Spend Forecast by Product Type",
+        "Product Profitability Trend",
+        "Product Mix Distribution Over Time",
+        "Contract Length Distribution",
+        "Customer Segmentation",
+        "Customer Cohort Analysis - Retention Rates",
+        "Detailed Data View",
+        "AI-driven Q&A Section"
+    ]
+
+    # Use streamlit-sortable to allow the user to reorder the widgets
+    with st.sidebar:
+        st.write("Drag and drop to rearrange sections:")
+        widget_selection = st.multiselect("Select sections to display:", options=available_widgets, default=available_widgets)
+        widget_order = st_sortable(widget_selection, key='sortable_list')
+
+    # Display the widgets based on user-selected order
+    for widget_name in widget_order:
+        if widget_name == "Overview":
+            # Overview section
+            st.markdown("<h2 style='text-align: center; color: black;'>Overview</h2>",
+                        unsafe_allow_html=True)
+            col1, col2, col3, col4 = st.columns(4)
+            col1.metric("Total Customers", int(filtered_data['total_customers'].sum()))
+            col2.metric("Churn Percentage", f"{filtered_data['churn_percentage'].mean():.2%}")
+            col3.metric("Avg Contract Length", f"{filtered_data['average_contract_length'].mean():.1f} months")
+            col4.metric("Total ARR", f"${int(filtered_data['total_arr'].sum()):,}")
+        elif widget_name == "Monthly Revenue Forecast":
+            # Monthly Revenue Forecast Chart
+            st.markdown("<h2 style='color: black;'>Monthly Revenue Forecast</h2>",
+                        unsafe_allow_html=True)
+            plot_revenue_forecast(filtered_data)
+        elif widget_name == "Spend Forecast by Product Type":
+            st.markdown("<h2 style='color: black;'>Spend Forecast by Product Type</h2>",
+                        unsafe_allow_html=True)
+            plot_spend_forecast(filtered_data)
+        elif widget_name == "Product Profitability Trend":
+            st.markdown("<h2 style='color: black;'>Product Profitability Trend</h2>",
+                        unsafe_allow_html=True)
+            plot_product_profitability(filtered_data, product_selection)
+        elif widget_name == "Product Mix Distribution Over Time":
+            st.markdown("<h3 style='color: black;'>Product Mix Distribution Over Time</h3>",
+                        unsafe_allow_html=True)
+            plot_product_mix(filtered_data, product_selection)
+        elif widget_name == "Contract Length Distribution":
+            st.markdown("<h3 style='color: black;'>Contract Length Distribution</h3>",
+                        unsafe_allow_html=True)
+            plot_contract_length_distribution(filtered_data)
+        elif widget_name == "Customer Segmentation":
+            st.markdown("<h3>Customer Segmentation</h3>", unsafe_allow_html=True)
+            plot_customer_segmentation(customer_data)
+        elif widget_name == "Customer Cohort Analysis - Retention Rates":
+            st.markdown("<h3>Customer Cohort Analysis - Retention Rates</h3>", unsafe_allow_html=True)
+            plot_cohort_retention_heatmap(cohort_data)
+        elif widget_name == "Detailed Data View":
+            display_data_table(filtered_data)
+        elif widget_name == "AI-driven Q&A Section":
+            st.markdown("<h2 style='text-align: center; color: black;'>AI-driven Q&A Section</h2>",
+                        unsafe_allow_html=True)
+            st.text("Cortex Analyst chat bot integration can be added here.")
 
 # Run the main function when the script is executed
 if __name__ == '__main__':

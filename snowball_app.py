@@ -5,10 +5,61 @@ import plotly.express as px
 import plotly.graph_objects as go
 from sklearn.cluster import KMeans
 
+# Set page configuration with custom theme and logo
+st.set_page_config(
+    page_title="SaaS Business Dashboard",
+    page_icon=":bar_chart:",
+    layout="wide",
+    initial_sidebar_state="expanded",
+)
+
+# Apply custom CSS for fonts and other styling
+st.markdown("""
+    <style>
+        /* Import custom fonts */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+
+        /* Apply font styles */
+        html, body, [class*="css"]  {
+            font-family: 'Inter', sans-serif;
+        }
+
+        /* Customize header */
+        .main-header {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #2E4057;
+        }
+
+        /* Customize subheaders */
+        .subheader {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #2E4057;
+            margin-top: 2rem;
+        }
+
+        /* Customize metrics */
+        .metric {
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+
+        /* Customize sidebar */
+        .sidebar .sidebar-content {
+            background-color: #F4F4F4;
+        }
+
+        /* Customize tooltips */
+        .tooltip {
+            font-size: 0.9rem;
+        }
+    </style>
+""", unsafe_allow_html=True)
+
 # Function to load dummy data for the main dashboard
 def load_dummy_data():
     # Generate dates for 24 months starting from January 2023
-    # Changed freq='M' to freq='MS' to fix FutureWarning
     dates = pd.date_range(start="2023-01-01", periods=24, freq='MS')
     # Create a dictionary with random data for each metric
     data = {
@@ -42,7 +93,6 @@ def generate_customer_data():
 def generate_cohort_data():
     np.random.seed(42)
     # Generate sign-up dates in monthly cohorts
-    # Changed freq='M' to freq='MS' to fix FutureWarning
     cohort_months = pd.date_range(start="2020-01-01", periods=12, freq='MS')
     # List to store retention data for each cohort
     cohort_data = []
@@ -62,13 +112,15 @@ def generate_cohort_data():
     retention_rate_df = cohort_df.divide(cohort_size, axis=0) * 100
     return retention_rate_df
 
-# Plotting functions for various charts
+# Plotting functions with enhanced interactivity and customization options
 def plot_revenue_forecast(df):
     fig = px.line(df, x='date', y='total_arr', title='Monthly Revenue Forecast',
                   labels={'total_arr': 'Revenue ($)'})
-    fig.update_traces(line_color='green')
+    fig.update_traces(line_color='#2E86AB')
     # Add interactive range slider and selectors
     fig.update_layout(
+        title_x=0.5,
+        title_font_size=20,
         xaxis=dict(
             rangeselector=dict(
                 buttons=list([
@@ -76,21 +128,32 @@ def plot_revenue_forecast(df):
                     dict(count=6, label="6M", step="month", stepmode="backward"),
                     dict(count=1, label="YTD", step="year", stepmode="todate"),
                     dict(step="all")
-                ])
+                ]),
+                font=dict(size=12)
             ),
             rangeslider=dict(visible=True),
-            type="date"
+            type="date",
+            title='Date'
         ),
+        yaxis=dict(title='Revenue ($)'),
         hovermode="x unified"
     )
+    # Add annotations for data storytelling
+    max_value = df['total_arr'].max()
+    max_date = df[df['total_arr'] == max_value]['date'].iloc[0]
+    fig.add_annotation(x=max_date, y=max_value,
+                       text="Peak Revenue",
+                       showarrow=True, arrowhead=1)
     st.plotly_chart(fig, use_container_width=True)
 
 def plot_spend_forecast(df):
     fig = px.line(df, x='date', y='spend_forecast', title='Spend Forecast by Product Type',
                   labels={'spend_forecast': 'Spend ($)'})
-    fig.update_traces(line_color='blue')
+    fig.update_traces(line_color='#FF6F61')
     # Add interactive range slider and selectors
     fig.update_layout(
+        title_x=0.5,
+        title_font_size=20,
         xaxis=dict(
             rangeselector=dict(
                 buttons=list([
@@ -98,11 +161,14 @@ def plot_spend_forecast(df):
                     dict(count=6, label="6M", step="month", stepmode="backward"),
                     dict(count=1, label="YTD", step="year", stepmode="todate"),
                     dict(step="all")
-                ])
+                ]),
+                font=dict(size=12)
             ),
             rangeslider=dict(visible=True),
-            type="date"
+            type="date",
+            title='Date'
         ),
+        yaxis=dict(title='Spend ($)'),
         hovermode="x unified"
     )
     st.plotly_chart(fig, use_container_width=True)
@@ -134,6 +200,9 @@ def plot_product_profitability(df, product_selection):
 
     # Add interactive range slider and selectors
     fig.update_layout(
+        title_x=0.5,
+        title_font_size=20,
+        legend_title_text='Product',
         xaxis=dict(
             rangeselector=dict(
                 buttons=list([
@@ -141,11 +210,14 @@ def plot_product_profitability(df, product_selection):
                     dict(count=6, label="6M", step="month", stepmode="backward"),
                     dict(count=1, label="YTD", step="year", stepmode="todate"),
                     dict(step="all")
-                ])
+                ]),
+                font=dict(size=12)
             ),
             rangeslider=dict(visible=True),
-            type="date"
+            type="date",
+            title='Date'
         ),
+        yaxis=dict(title='Revenue ($)'),
         hovermode="x unified"
     )
 
@@ -172,11 +244,15 @@ def plot_product_mix(df, product_selection):
         df_melted, x='date', y='Revenue', color='Product',
         title='Product Mix Distribution Over Time',
         labels={'Revenue': 'Revenue ($)', 'date': 'Date'},
-        groupnorm='percent'
+        groupnorm=None,
+        hover_data={'Revenue': ':.2f', 'date': True}
     )
 
     # Add interactive range slider and selectors
     fig.update_layout(
+        title_x=0.5,
+        title_font_size=20,
+        legend_title_text='Product',
         xaxis=dict(
             rangeselector=dict(
                 buttons=list([
@@ -184,13 +260,15 @@ def plot_product_mix(df, product_selection):
                     dict(count=6, label="6M", step="month", stepmode="backward"),
                     dict(count=1, label="YTD", step="year", stepmode="todate"),
                     dict(step="all")
-                ])
+                ]),
+                font=dict(size=12)
             ),
             rangeslider=dict(visible=True),
-            type="date"
+            type="date",
+            title='Date'
         ),
-        hovermode="x unified",
-        yaxis=dict(ticksuffix='%')
+        yaxis=dict(title='Revenue ($)'),
+        hovermode="x unified"
     )
 
     st.plotly_chart(fig, use_container_width=True)
@@ -199,18 +277,31 @@ def plot_contract_length_distribution(df):
     fig = px.histogram(df, x='average_contract_length', nbins=10,
                        title='Contract Length Distribution',
                        labels={'average_contract_length': 'Contract Length (Months)'})
-    fig.update_layout(bargap=0.1)
+    fig.update_layout(
+        title_x=0.5,
+        title_font_size=20,
+        xaxis=dict(title='Contract Length (Months)'),
+        yaxis=dict(title='Count'),
+        bargap=0.1
+    )
     st.plotly_chart(fig, use_container_width=True)
 
 def plot_customer_segmentation(customer_data):
     X = customer_data[['spend', 'contract_length']]
-    kmeans = KMeans(n_clusters=3)
+    kmeans = KMeans(n_clusters=3, n_init='auto')
     customer_data['segment'] = kmeans.fit_predict(X)
 
     fig = px.scatter(customer_data, x='spend', y='contract_length', color='segment',
                      title='Customer Segmentation',
                      labels={'spend': 'Customer Spend ($)', 'contract_length': 'Contract Length (Months)'},
                      hover_data=['customer_id'])
+    fig.update_layout(
+        title_x=0.5,
+        title_font_size=20,
+        legend_title_text='Segment',
+        xaxis=dict(title='Customer Spend ($)'),
+        yaxis=dict(title='Contract Length (Months)')
+    )
     st.plotly_chart(fig, use_container_width=True)
 
 def plot_cohort_retention_heatmap(cohort_df):
@@ -220,13 +311,17 @@ def plot_cohort_retention_heatmap(cohort_df):
                     x=[f"Month {i}" for i in range(12)],
                     y=cohort_df.index,
                     color_continuous_scale='Blues')
-    fig.update_layout(title="Customer Cohort Analysis - Retention Rates",
-                      xaxis_title="Cohort Period (Months)",
-                      yaxis_title="Cohort (Sign-up Month)")
+    fig.update_layout(
+        title="Customer Cohort Analysis - Retention Rates",
+        title_x=0.5,
+        title_font_size=20,
+        xaxis_title="Cohort Period (Months)",
+        yaxis_title="Cohort (Sign-up Month)"
+    )
     st.plotly_chart(fig, use_container_width=True)
 
 def display_data_table(df):
-    st.markdown("<h2 style='color: black;'>Detailed Data View</h2>", unsafe_allow_html=True)
+    st.markdown("<h2 class='subheader'>Detailed Data View</h2>", unsafe_allow_html=True)
     # Add filters
     with st.expander("Filter Data"):
         min_revenue = st.slider("Minimum Revenue ($)", int(df['total_arr'].min()), int(df['total_arr'].max()), int(df['total_arr'].min()))
@@ -236,23 +331,48 @@ def display_data_table(df):
 
 # Main function to run the Streamlit app
 def main():
-    # Set the title of the app
-    st.markdown("<h1 style='text-align: center; color: black;'>SaaS Business Dashboard Demo</h1>",
-                unsafe_allow_html=True)
+    # Add logo and header
+    st.image("https://i.imgur.com/UbOXYAU.png", width=200)  # Replace with your logo URL or local path
+    st.markdown("<h1 class='main-header'>SaaS Business Dashboard</h1>", unsafe_allow_html=True)
+
     # Load data
     data = load_dummy_data()
     customer_data = generate_customer_data()
     cohort_data = generate_cohort_data()
+
     # Sidebar filters
     st.sidebar.header("Filter Options")
-    start_month = st.sidebar.date_input("Start Date", value=data['date'].min())
-    end_month = st.sidebar.date_input("End Date", value=data['date'].max())
+    start_month = st.sidebar.date_input("Start Date", value=data['date'].min(), help="Select the start date for data filtering.")
+    end_month = st.sidebar.date_input("End Date", value=data['date'].max(), help="Select the end date for data filtering.")
     global product_selection
     product_selection = st.sidebar.multiselect("Select products:",
                                                ['Product 1', 'Product 2', 'Product 3'],
-                                               default=['Product 1', 'Product 2', 'Product 3'])
-    forecast_period = st.sidebar.slider("Forecast period (months):", 1, 12, value=6)
-    contract_length_range = st.sidebar.slider("Contract length (months):", 2, 48, value=(2, 48))
+                                               default=['Product 1', 'Product 2', 'Product 3'],
+                                               help="Choose which products to include in the analysis.")
+    forecast_period = st.sidebar.slider("Forecast period (months):", 1, 12, value=6, help="Adjust the forecast period.")
+    contract_length_range = st.sidebar.slider("Contract length (months):", 2, 48, value=(2, 48), help="Filter data by contract length range.")
+
+    # Theme selection
+    st.sidebar.header("Theme Options")
+    theme_choice = st.sidebar.selectbox("Choose a theme:", ["Light", "Dark"])
+    if theme_choice == "Dark":
+        # Apply dark theme CSS
+        st.markdown("""
+            <style>
+                body {
+                    background-color: #2E4057;
+                    color: #FFFFFF;
+                }
+                .sidebar .sidebar-content {
+                    background-color: #3E4E67;
+                }
+                .stButton>button {
+                    background-color: #FF6F61;
+                    color: #FFFFFF;
+                }
+            </style>
+        """, unsafe_allow_html=True)
+
     # Convert inputs to datetime if necessary
     start_month = pd.to_datetime(start_month)
     end_month = pd.to_datetime(end_month)
@@ -284,53 +404,50 @@ def main():
 
     widget_selection = []
     for widget in available_widgets:
-        if st.sidebar.checkbox(f"Show {widget}", value=True):
+        if st.sidebar.checkbox(f"{widget}", value=True):
             widget_selection.append(widget)
 
     # Display the widgets based on user-selected options
     for widget_name in widget_selection:
         if widget_name == "Overview":
             # Overview section
-            st.markdown("<h2 style='text-align: center; color: black;'>Overview</h2>",
-                        unsafe_allow_html=True)
+            st.markdown("<h2 class='subheader'>Overview</h2>", unsafe_allow_html=True)
             col1, col2, col3, col4 = st.columns(4)
-            col1.metric("Total Customers", int(filtered_data['total_customers'].sum()))
-            col2.metric("Churn Percentage", f"{filtered_data['churn_percentage'].mean():.2%}")
-            col3.metric("Avg Contract Length", f"{filtered_data['average_contract_length'].mean():.1f} months")
-            col4.metric("Total ARR", f"${int(filtered_data['total_arr'].sum()):,}")
+            col1.metric("Total Customers", int(filtered_data['total_customers'].sum()), help="Sum of total customers over the selected period.")
+            col2.metric("Churn Percentage", f"{filtered_data['churn_percentage'].mean():.2%}", help="Average churn percentage over the selected period.")
+            col3.metric("Avg Contract Length", f"{filtered_data['average_contract_length'].mean():.1f} months", help="Average contract length in months.")
+            col4.metric("Total ARR", f"${int(filtered_data['total_arr'].sum()):,}", help="Total Annual Recurring Revenue.")
         elif widget_name == "Monthly Revenue Forecast":
             # Monthly Revenue Forecast Chart
-            st.markdown("<h2 style='color: black;'>Monthly Revenue Forecast</h2>",
-                        unsafe_allow_html=True)
+            st.markdown("<h2 class='subheader'>Monthly Revenue Forecast</h2>", unsafe_allow_html=True)
             plot_revenue_forecast(filtered_data)
         elif widget_name == "Spend Forecast by Product Type":
-            st.markdown("<h2 style='color: black;'>Spend Forecast by Product Type</h2>",
-                        unsafe_allow_html=True)
+            st.markdown("<h2 class='subheader'>Spend Forecast by Product Type</h2>", unsafe_allow_html=True)
             plot_spend_forecast(filtered_data)
         elif widget_name == "Product Profitability Trend":
-            st.markdown("<h2 style='color: black;'>Product Profitability Trend</h2>",
-                        unsafe_allow_html=True)
+            st.markdown("<h2 class='subheader'>Product Profitability Trend</h2>", unsafe_allow_html=True)
             plot_product_profitability(filtered_data, product_selection)
         elif widget_name == "Product Mix Distribution Over Time":
-            st.markdown("<h3 style='color: black;'>Product Mix Distribution Over Time</h3>",
-                        unsafe_allow_html=True)
+            st.markdown("<h2 class='subheader'>Product Mix Distribution Over Time</h2>", unsafe_allow_html=True)
             plot_product_mix(filtered_data, product_selection)
         elif widget_name == "Contract Length Distribution":
-            st.markdown("<h3 style='color: black;'>Contract Length Distribution</h3>",
-                        unsafe_allow_html=True)
+            st.markdown("<h2 class='subheader'>Contract Length Distribution</h2>", unsafe_allow_html=True)
             plot_contract_length_distribution(filtered_data)
         elif widget_name == "Customer Segmentation":
-            st.markdown("<h3>Customer Segmentation</h3>", unsafe_allow_html=True)
+            st.markdown("<h2 class='subheader'>Customer Segmentation</h2>", unsafe_allow_html=True)
             plot_customer_segmentation(customer_data)
         elif widget_name == "Customer Cohort Analysis - Retention Rates":
-            st.markdown("<h3>Customer Cohort Analysis - Retention Rates</h3>", unsafe_allow_html=True)
+            st.markdown("<h2 class='subheader'>Customer Cohort Analysis - Retention Rates</h2>", unsafe_allow_html=True)
             plot_cohort_retention_heatmap(cohort_data)
         elif widget_name == "Detailed Data View":
             display_data_table(filtered_data)
         elif widget_name == "AI-driven Q&A Section":
-            st.markdown("<h2 style='text-align: center; color: black;'>AI-driven Q&A Section</h2>",
-                        unsafe_allow_html=True)
+            st.markdown("<h2 class='subheader'>AI-driven Q&A Section</h2>", unsafe_allow_html=True)
             st.text("Cortex Analyst chat bot integration can be added here.")
+
+    # Footer
+    st.markdown("<hr>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center; font-size: 0.9rem;'>© 2023 SaaS Business Dashboard. All rights reserved.</p>", unsafe_allow_html=True)
 
 # Run the main function when the script is executed
 if __name__ == '__main__':

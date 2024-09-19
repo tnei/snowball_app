@@ -3,4 +3,4 @@ pandas
 numpy
 plotly
 scikit-learn
-from neuralprophet import NeuralProphet
+neuralprophet

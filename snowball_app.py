@@ -4,7 +4,8 @@ import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
 from sklearn.cluster import KMeans
-from neuralprophet import NeuralProphet  # Replaced Prophet with NeuralProphet
+from neuralprophet import NeuralProphet
+from pytorch_lightning import Trainer  # PyTorch Lightning Trainer
 import base64
 import hashlib
 
@@ -137,7 +138,12 @@ def generate_cohort_data():
 def forecast_revenue(df, periods):
     # Prepare data for NeuralProphet
     neuralprophet_df = df[['date', 'total_arr']].rename(columns={'date': 'ds', 'total_arr': 'y'})
-    model = NeuralProphet()
+    
+    # Initialize the Trainer with PyTorch Lightning
+    trainer = Trainer(max_epochs=10)  # Limiting to 10 epochs for faster computation
+    
+    # Initialize NeuralProphet with a fixed learning rate and custom trainer to avoid using LR finder
+    model = NeuralProphet(learning_rate=0.01, trainer=trainer)  # Adjust learning rate as needed
     model.fit(neuralprophet_df, freq='MS')
     
     # Create future dataframe
@@ -374,38 +380,11 @@ def display_data_table(df):
     href = f'<a href="data:file/csv;base64,{b64}" download="filtered_data.csv">Download CSV File</a>'
     st.markdown(href, unsafe_allow_html=True)
 
-# Function to add user authentication
-def authenticate(username, password):
-    # In a real application, replace this with a secure authentication mechanism
-    # Here, we use a simple hardcoded username and password
-    if username == "admin" and password == "password":
-        return True
-    else:
-        return False
-
 # Main function to run the Streamlit app
 def main():
     # Add logo and header
     st.image("https://i.imgur.com/UbOXYAU.png", width=200)  # Replace with your logo URL or local path
     st.markdown("<h1 class='main-header'>SaaS Business Dashboard</h1>", unsafe_allow_html=True)
-
-    # User authentication
-    if 'authenticated' not in st.session_state:
-        st.session_state['authenticated'] = False
-
-    if not st.session_state['authenticated']:
-        with st.form("Login"):
-            st.write("Please log in to access the dashboard.")
-            username = st.text_input("Username")
-            password = st.text_input("Password", type="password")
-            submitted = st.form_submit_button("Login")
-            if submitted:
-                if authenticate(username, password):
-                    st.session_state['authenticated'] = True
-                    st.success("Login successful!")
-                else:
-                    st.error("Invalid username or password.")
-        return  # Stop execution until user logs in
 
     # Load data
     data = load_dummy_data()

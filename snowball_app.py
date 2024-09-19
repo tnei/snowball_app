@@ -9,7 +9,8 @@ from streamlit_sortable import st_sortable  # Import streamlit-sortable
 # Function to load dummy data for the main dashboard
 def load_dummy_data():
     # Generate dates for 24 months starting from January 2023
-    dates = pd.date_range(start="2023-01-01", periods=24, freq='M')
+    # Changed freq='M' to freq='MS' to fix FutureWarning
+    dates = pd.date_range(start="2023-01-01", periods=24, freq='MS')
     # Create a dictionary with random data for each metric
     data = {
         'date': dates,
@@ -42,7 +43,8 @@ def generate_customer_data():
 def generate_cohort_data():
     np.random.seed(42)
     # Generate sign-up dates in monthly cohorts
-    cohort_months = pd.date_range(start="2020-01-01", periods=12, freq='M')
+    # Changed freq='M' to freq='MS' to fix FutureWarning
+    cohort_months = pd.date_range(start="2020-01-01", periods=12, freq='MS')
     # List to store retention data for each cohort
     cohort_data = []
     for i, month in enumerate(cohort_months):
@@ -62,8 +64,6 @@ def generate_cohort_data():
     return retention_rate_df
 
 # Plotting functions for various charts
-
-# Updated plot_revenue_forecast function with interactivity
 def plot_revenue_forecast(df):
     fig = px.line(df, x='date', y='total_arr', title='Monthly Revenue Forecast',
                   labels={'total_arr': 'Revenue ($)'})
@@ -86,7 +86,6 @@ def plot_revenue_forecast(df):
     )
     st.plotly_chart(fig, use_container_width=True)
 
-# Updated plot_spend_forecast function with interactivity
 def plot_spend_forecast(df):
     fig = px.line(df, x='date', y='spend_forecast', title='Spend Forecast by Product Type',
                   labels={'spend_forecast': 'Spend ($)'})
@@ -109,7 +108,6 @@ def plot_spend_forecast(df):
     )
     st.plotly_chart(fig, use_container_width=True)
 
-# Updated plot_product_profitability function with interactivity
 def plot_product_profitability(df, product_selection):
     # Create a DataFrame based on product selection
     product_cols = {
@@ -154,7 +152,6 @@ def plot_product_profitability(df, product_selection):
 
     st.plotly_chart(fig, use_container_width=True)
 
-# Updated plot_product_mix function with interactivity
 def plot_product_mix(df, product_selection):
     product_cols = {
         'Product 1': 'product_1_revenue',
@@ -199,7 +196,6 @@ def plot_product_mix(df, product_selection):
 
     st.plotly_chart(fig, use_container_width=True)
 
-# Updated plot_contract_length_distribution function with interactivity
 def plot_contract_length_distribution(df):
     fig = px.histogram(df, x='average_contract_length', nbins=10,
                        title='Contract Length Distribution',
@@ -207,7 +203,6 @@ def plot_contract_length_distribution(df):
     fig.update_layout(bargap=0.1)
     st.plotly_chart(fig, use_container_width=True)
 
-# Customer Segmentation using KMeans with interactivity
 def plot_customer_segmentation(customer_data):
     X = customer_data[['spend', 'contract_length']]
     kmeans = KMeans(n_clusters=3)
@@ -219,7 +214,6 @@ def plot_customer_segmentation(customer_data):
                      hover_data=['customer_id'])
     st.plotly_chart(fig, use_container_width=True)
 
-# Customer Cohort Analysis - Retention Rates Heatmap
 def plot_cohort_retention_heatmap(cohort_df):
     fig = px.imshow(cohort_df,
                     labels=dict(x="Cohort Period (Months)", y="Cohort (Sign-up Month)",
@@ -232,7 +226,6 @@ def plot_cohort_retention_heatmap(cohort_df):
                       yaxis_title="Cohort (Sign-up Month)")
     st.plotly_chart(fig, use_container_width=True)
 
-# Display data table with interactive filtering
 def display_data_table(df):
     st.markdown("<h2 style='color: black;'>Detailed Data View</h2>", unsafe_allow_html=True)
     # Add filters
@@ -275,7 +268,7 @@ def main():
                                   (filtered_data['average_contract_length'] <= contract_length_range[1])]
     # Apply product selection filter (adjusted in plotting functions)
 
-    # Allow the user to select which sections to display
+    # Dashboard Customization
     st.sidebar.header("Customize Dashboard")
     available_widgets = [
         "Overview",
@@ -290,14 +283,13 @@ def main():
         "AI-driven Q&A Section"
     ]
 
-    # Use streamlit-sortable to allow the user to reorder the widgets
-    with st.sidebar:
-        st.write("Drag and drop to rearrange sections:")
-        widget_selection = st.multiselect("Select sections to display:", options=available_widgets, default=available_widgets)
-        widget_order = st_sortable(widget_selection, key='sortable_list')
+    widget_selection = []
+    for widget in available_widgets:
+        if st.sidebar.checkbox(f"Show {widget}", value=True):
+            widget_selection.append(widget)
 
-    # Display the widgets based on user-selected order
-    for widget_name in widget_order:
+    # Display the widgets based on user-selected options
+    for widget_name in widget_selection:
         if widget_name == "Overview":
             # Overview section
             st.markdown("<h2 style='text-align: center; color: black;'>Overview</h2>",

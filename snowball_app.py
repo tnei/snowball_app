@@ -4,7 +4,6 @@ import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
 from sklearn.cluster import KMeans
-from streamlit_sortable import st_sortable  # Import streamlit-sortable
 
 # Function to load dummy data for the main dashboard
 def load_dummy_data():

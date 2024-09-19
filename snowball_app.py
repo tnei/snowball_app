@@ -139,11 +139,14 @@ def forecast_revenue(df, periods):
     # Prepare data for NeuralProphet
     neuralprophet_df = df[['date', 'total_arr']].rename(columns={'date': 'ds', 'total_arr': 'y'})
     
-    # Initialize the Trainer with PyTorch Lightning
-    trainer = Trainer(max_epochs=10)  # Limiting to 10 epochs for faster computation
+    # Disable checkpointing by passing `enable_checkpointing=False` or use a custom ModelCheckpoint
+    checkpoint_callback = ModelCheckpoint(save_top_k=0)  # No checkpoint saving
     
-    # Initialize NeuralProphet with a fixed learning rate and custom trainer to avoid using LR finder
-    model = NeuralProphet(learning_rate=0.01, trainer=trainer)  # Adjust learning rate as needed
+    # Initialize the Trainer with checkpointing disabled
+    trainer = Trainer(max_epochs=10, enable_checkpointing=False)  # Adjust epochs if needed
+    
+    # Initialize NeuralProphet with a fixed learning rate
+    model = NeuralProphet(learning_rate=0.01, trainer=trainer)  # Set learning rate manually
     model.fit(neuralprophet_df, freq='MS')
     
     # Create future dataframe

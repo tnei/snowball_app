@@ -4,7 +4,7 @@ import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
 from sklearn.cluster import KMeans
-from prophet import Prophet  # For advanced predictive analytics
+from neuralprophet import NeuralProphet  # Replaced Prophet with NeuralProphet
 import base64
 import hashlib
 
@@ -133,19 +133,21 @@ def generate_cohort_data():
     retention_rate_df = cohort_df.divide(cohort_size, axis=0) * 100
     return retention_rate_df
 
-# Function for advanced predictive analytics using Prophet
+# Function for advanced predictive analytics using NeuralProphet
 def forecast_revenue(df, periods):
-    # Prepare data for Prophet
-    prophet_df = df[['date', 'total_arr']].rename(columns={'date': 'ds', 'total_arr': 'y'})
-    model = Prophet()
-    model.fit(prophet_df)
+    # Prepare data for NeuralProphet
+    neuralprophet_df = df[['date', 'total_arr']].rename(columns={'date': 'ds', 'total_arr': 'y'})
+    model = NeuralProphet()
+    model.fit(neuralprophet_df, freq='MS')
+    
     # Create future dataframe
-    future = model.make_future_dataframe(periods=periods, freq='MS')
+    future = model.make_future_dataframe(neuralprophet_df, periods=periods)
     forecast = model.predict(future)
-    # Plot forecast
-    fig = plot_plotly(model, forecast)
+    
+    # Plot forecast using Plotly
+    fig = px.line(forecast, x='ds', y='yhat1', title='Revenue Forecast',
+                  labels={'ds': 'Date', 'yhat1': 'Forecasted Revenue ($)'})
     fig.update_layout(
-        title="Revenue Forecast",
         title_x=0.5,
         title_font_size=20,
         xaxis_title="Date",
@@ -181,12 +183,6 @@ def plot_revenue_forecast(df):
         yaxis=dict(title='Revenue ($)'),
         hovermode="x unified"
     )
-    # Add annotations for data storytelling
-    max_value = df['total_arr'].max()
-    max_date = df[df['total_arr'] == max_value]['date'].iloc[0]
-    fig.add_annotation(x=max_date, y=max_value,
-                       text="Peak Revenue",
-                       showarrow=True, arrowhead=1)
     st.plotly_chart(fig, use_container_width=True)
 
 def plot_spend_forecast(df):

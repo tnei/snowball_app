@@ -4,6 +4,9 @@ import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
 from sklearn.cluster import KMeans
+from prophet import Prophet  # For advanced predictive analytics
+import base64
+import hashlib
 
 # Set page configuration with custom theme and logo
 st.set_page_config(
@@ -54,13 +57,30 @@ st.markdown("""
         .tooltip {
             font-size: 0.9rem;
         }
+
+        /* Customize buttons */
+        .stButton>button {
+            background-color: #2E86AB;
+            color: #FFFFFF;
+            border-radius: 8px;
+        }
+
+        /* Dark mode styles */
+        body.dark-mode {
+            background-color: #2E4057;
+            color: #FFFFFF;
+        }
+        .dark-mode .sidebar .sidebar-content {
+            background-color: #3E4E67;
+        }
     </style>
 """, unsafe_allow_html=True)
 
 # Function to load dummy data for the main dashboard
+@st.cache_data
 def load_dummy_data():
-    # Generate dates for 24 months starting from January 2023
-    dates = pd.date_range(start="2023-01-01", periods=24, freq='MS')
+    # Generate dates for 36 months starting from January 2021
+    dates = pd.date_range(start="2021-01-01", periods=36, freq='MS')
     # Create a dictionary with random data for each metric
     data = {
         'date': dates,
@@ -77,44 +97,67 @@ def load_dummy_data():
     return pd.DataFrame(data)
 
 # Function to generate dummy customer data for segmentation and cohort analysis
+@st.cache_data
 def generate_customer_data():
     np.random.seed(42)
     customer_data = {
-        'customer_id': range(1, 101),
-        'spend': np.random.randint(500, 5000, 100),
-        'contract_length': np.random.randint(6, 48, 100),
-        'sign_up_date': pd.date_range(start="2020-01-01", periods=100, freq='7D'),
-        'last_active': pd.date_range(start="2020-01-01", periods=100, freq='7D') +
-                       pd.to_timedelta(np.random.randint(30, 365, 100), unit='D')
+        'customer_id': range(1, 1001),
+        'spend': np.random.randint(500, 5000, 1000),
+        'contract_length': np.random.randint(6, 48, 1000),
+        'sign_up_date': pd.date_range(start="2018-01-01", periods=1000, freq='D'),
+        'last_active': pd.date_range(start="2018-01-01", periods=1000, freq='D') +
+                       pd.to_timedelta(np.random.randint(30, 365 * 3, 1000), unit='D')
     }
     return pd.DataFrame(customer_data)
 
 # Function to generate dummy cohort data with retention rates
+@st.cache_data
 def generate_cohort_data():
     np.random.seed(42)
     # Generate sign-up dates in monthly cohorts
-    cohort_months = pd.date_range(start="2020-01-01", periods=12, freq='MS')
+    cohort_months = pd.date_range(start="2018-01-01", periods=36, freq='MS')
     # List to store retention data for each cohort
     cohort_data = []
     for i, month in enumerate(cohort_months):
         cohort_size = np.random.randint(50, 100)  # Random cohort size
         retention = [cohort_size]  # Initial cohort size
-        for m in range(1, 12):  # Generate retention for the next 11 months
+        for m in range(1, 36):  # Generate retention for the next 35 months
             retention_rate = np.random.uniform(0.5, 0.95)  # Random retention rate
             retained_customers = int(retention[-1] * retention_rate)
             retention.append(retained_customers)
         cohort_data.append(retention)
     # Create DataFrame from the retention data
-    cohort_df = pd.DataFrame(cohort_data, index=cohort_months.strftime('%Y-%m'),
-                             columns=[f"Month {i}" for i in range(12)])
+    cohort_df = pd.DataFrame(cohort_data, index=cohort_months.strftime('%Y-%m'))
     # Calculate retention percentage
     cohort_size = cohort_df.iloc[:, 0]
     retention_rate_df = cohort_df.divide(cohort_size, axis=0) * 100
     return retention_rate_df
 
+# Function for advanced predictive analytics using Prophet
+def forecast_revenue(df, periods):
+    # Prepare data for Prophet
+    prophet_df = df[['date', 'total_arr']].rename(columns={'date': 'ds', 'total_arr': 'y'})
+    model = Prophet()
+    model.fit(prophet_df)
+    # Create future dataframe
+    future = model.make_future_dataframe(periods=periods, freq='MS')
+    forecast = model.predict(future)
+    # Plot forecast
+    fig = plot_plotly(model, forecast)
+    fig.update_layout(
+        title="Revenue Forecast",
+        title_x=0.5,
+        title_font_size=20,
+        xaxis_title="Date",
+        yaxis_title="Revenue ($)",
+        hovermode="x unified"
+    )
+    st.plotly_chart(fig, use_container_width=True)
+    return forecast
+
 # Plotting functions with enhanced interactivity and customization options
 def plot_revenue_forecast(df):
-    fig = px.line(df, x='date', y='total_arr', title='Monthly Revenue Forecast',
+    fig = px.line(df, x='date', y='total_arr', title='Monthly Revenue',
                   labels={'total_arr': 'Revenue ($)'})
     fig.update_traces(line_color='#2E86AB')
     # Add interactive range slider and selectors
@@ -308,7 +351,7 @@ def plot_cohort_retention_heatmap(cohort_df):
     fig = px.imshow(cohort_df,
                     labels=dict(x="Cohort Period (Months)", y="Cohort (Sign-up Month)",
                                 color="Retention Rate (%)"),
-                    x=[f"Month {i}" for i in range(12)],
+                    x=[f"Month {i}" for i in range(len(cohort_df.columns))],
                     y=cohort_df.index,
                     color_continuous_scale='Blues')
     fig.update_layout(
@@ -329,11 +372,44 @@ def display_data_table(df):
         filtered_df = df[(df['total_arr'] >= min_revenue) & (df['total_arr'] <= max_revenue)]
     st.dataframe(filtered_df)
 
+    # Add option to download data
+    csv = filtered_df.to_csv(index=False)
+    b64 = base64.b64encode(csv.encode()).decode()
+    href = f'<a href="data:file/csv;base64,{b64}" download="filtered_data.csv">Download CSV File</a>'
+    st.markdown(href, unsafe_allow_html=True)
+
+# Function to add user authentication
+def authenticate(username, password):
+    # In a real application, replace this with a secure authentication mechanism
+    # Here, we use a simple hardcoded username and password
+    if username == "admin" and password == "password":
+        return True
+    else:
+        return False
+
 # Main function to run the Streamlit app
 def main():
     # Add logo and header
     st.image("https://i.imgur.com/UbOXYAU.png", width=200)  # Replace with your logo URL or local path
     st.markdown("<h1 class='main-header'>SaaS Business Dashboard</h1>", unsafe_allow_html=True)
+
+    # User authentication
+    if 'authenticated' not in st.session_state:
+        st.session_state['authenticated'] = False
+
+    if not st.session_state['authenticated']:
+        with st.form("Login"):
+            st.write("Please log in to access the dashboard.")
+            username = st.text_input("Username")
+            password = st.text_input("Password", type="password")
+            submitted = st.form_submit_button("Login")
+            if submitted:
+                if authenticate(username, password):
+                    st.session_state['authenticated'] = True
+                    st.success("Login successful!")
+                else:
+                    st.error("Invalid username or password.")
+        return  # Stop execution until user logs in
 
     # Load data
     data = load_dummy_data()
@@ -356,22 +432,8 @@ def main():
     st.sidebar.header("Theme Options")
     theme_choice = st.sidebar.selectbox("Choose a theme:", ["Light", "Dark"])
     if theme_choice == "Dark":
-        # Apply dark theme CSS
-        st.markdown("""
-            <style>
-                body {
-                    background-color: #2E4057;
-                    color: #FFFFFF;
-                }
-                .sidebar .sidebar-content {
-                    background-color: #3E4E67;
-                }
-                .stButton>button {
-                    background-color: #FF6F61;
-                    color: #FFFFFF;
-                }
-            </style>
-        """, unsafe_allow_html=True)
+        # Apply dark mode by adding a CSS class
+        st.markdown('<body class="dark-mode">', unsafe_allow_html=True)
 
     # Convert inputs to datetime if necessary
     start_month = pd.to_datetime(start_month)
@@ -391,7 +453,8 @@ def main():
     st.sidebar.header("Customize Dashboard")
     available_widgets = [
         "Overview",
-        "Monthly Revenue Forecast",
+        "Monthly Revenue",
+        "Revenue Forecast",
         "Spend Forecast by Product Type",
         "Product Profitability Trend",
         "Product Mix Distribution Over Time",
@@ -417,10 +480,13 @@ def main():
             col2.metric("Churn Percentage", f"{filtered_data['churn_percentage'].mean():.2%}", help="Average churn percentage over the selected period.")
             col3.metric("Avg Contract Length", f"{filtered_data['average_contract_length'].mean():.1f} months", help="Average contract length in months.")
             col4.metric("Total ARR", f"${int(filtered_data['total_arr'].sum()):,}", help="Total Annual Recurring Revenue.")
-        elif widget_name == "Monthly Revenue Forecast":
-            # Monthly Revenue Forecast Chart
-            st.markdown("<h2 class='subheader'>Monthly Revenue Forecast</h2>", unsafe_allow_html=True)
+        elif widget_name == "Monthly Revenue":
+            # Monthly Revenue Chart
+            st.markdown("<h2 class='subheader'>Monthly Revenue</h2>", unsafe_allow_html=True)
             plot_revenue_forecast(filtered_data)
+        elif widget_name == "Revenue Forecast":
+            st.markdown("<h2 class='subheader'>Revenue Forecast</h2>", unsafe_allow_html=True)
+            forecast = forecast_revenue(data, periods=forecast_period)
         elif widget_name == "Spend Forecast by Product Type":
             st.markdown("<h2 class='subheader'>Spend Forecast by Product Type</h2>", unsafe_allow_html=True)
             plot_spend_forecast(filtered_data)

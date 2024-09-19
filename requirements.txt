@@ -5,3 +5,4 @@ pandas
 numpy
 plotly
 scikit-learn
+pytorch-lightning==1.6.0

@@ -4,6 +4,7 @@ import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
 from sklearn.cluster import KMeans
+from neuralprophet import NeuralProphet
 
 # Set page configuration with custom theme and logo
 st.set_page_config(

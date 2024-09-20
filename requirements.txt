@@ -1,8 +1,5 @@
-holidays==0.24
 streamlit
 pandas
+numpy
 plotly
 scikit-learn
-neuralprophet==0.3.0
-pytorch-lightning==1.6.0
-numpy==1.23.0
